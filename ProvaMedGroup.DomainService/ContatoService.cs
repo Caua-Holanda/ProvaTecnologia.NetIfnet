@@ -21,7 +21,6 @@ namespace ProvaMedGroup.DomainService
             _unitOfWork = unitOfWork;
         }
 
-
         public async Task<Contato> AdicionarContato(Contato contatos)
         {
             if (contatos.DataNascimento > DateTime.Now.AddYears(-1))
