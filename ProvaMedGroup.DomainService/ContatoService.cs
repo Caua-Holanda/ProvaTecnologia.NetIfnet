@@ -32,6 +32,7 @@ namespace ProvaMedGroup.DomainService
                 }
 
                 throw new TratedExceptions("O contato deve ter mais de 1 ano");
+
             }
 
 
