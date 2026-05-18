@@ -10,9 +10,18 @@ namespace ProvaMedGroup.Infra.Mappings
         {
             builder.HasKey(f => f.Id);
 
-            builder.Property(f => f.Nome)
-                   .IsRequired()
-                   .HasColumnType("varchar(100)");
+            builder.OwnsOne(c => c.NomeCompleto, nome =>
+            {
+                nome.Property(n => n.PrimeiroNome)
+                     .HasColumnName("PrimeiroNome")
+                     .IsRequired()
+                     .HasColumnType("varchar(100)");
+
+                nome.Property(n => n.Sobrenome)
+                     .HasColumnName("Sobrenome")
+                     .IsRequired()
+                     .HasColumnType("varchar(50)");
+            });
 
             builder.Property(f => f.DataNascimento)
                    .IsRequired()

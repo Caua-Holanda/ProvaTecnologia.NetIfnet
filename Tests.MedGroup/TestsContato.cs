@@ -3,7 +3,9 @@ using ProvaMed.DomainModel.Interfaces.UoW;
 using ProvaMedGroup.DomainModel.Entities;
 using ProvaMedGroup.DomainModel.Exceptions;
 using ProvaMedGroup.DomainModel.Interfaces.Repositories;
- using ProvaMedGroup.DomainService;
+using ProvaMedGroup.DomainService;
+using ProvaMedGroup.DomainModel.Factories;
+using ProvaMedGroup.DomainModel.ValueObjects;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -25,11 +27,7 @@ public class ContatoServiceTests
     [Fact(DisplayName = "Adicionar Contato - Sucesso")]
     public async Task AdicionarContato_Sucesso()
     {
-        var contato = new Contato
-        {
-            Nome = "Cau� Holanda",
-            DataNascimento = DateTime.Now.AddYears(-20) // 20 anos
-        };
+        var contato = ContatoFactory.CriarNovoContato("Caua", "Holanda", DateTime.Now.AddYears(-20), 'M');
 
         _contatoRepositoryMock.Setup(r => r.Create(contato)).Verifiable();
  
@@ -37,6 +35,8 @@ public class ContatoServiceTests
 
         Assert.NotNull(resultado);
         Assert.True(resultado.Ativo);
+        Assert.Equal("Caua", resultado.NomeCompleto.PrimeiroNome);
+        Assert.Equal("Holanda", resultado.NomeCompleto.Sobrenome);
         _contatoRepositoryMock.Verify(r => r.Create(contato));
         _unitOfWorkMock.Verify(u => u.CommitAsync());
     }
@@ -44,117 +44,120 @@ public class ContatoServiceTests
     [Fact(DisplayName = "Adicionar Contato - Falha por Idade")]
     public async Task AdicionarContato_FalhaPorIdade()
     {
-        var contato = new Contato
-        {
-            Nome = "Cau� Holanda",
-            DataNascimento = DateTime.Now.AddYears(-10) // 10 anos
-        };
-
-        await Assert.ThrowsAsync<TratedExceptions>(() => _contatoService.AdicionarContato(contato));
+        var exception = await Assert.ThrowsAsync<TratedExceptions>(() => 
+            Task.FromResult(ContatoFactory.CriarNovoContato("Caua", "Holanda", DateTime.Now.AddYears(-10), 'M'))
+        );
+        Assert.Equal("O contato deve ter no mínimo 18 anos.", exception.Message);
     }
 
     [Fact(DisplayName = "Adicionar Contato - Falha por Data Futura")]
     public async Task AdicionarContato_FalhaPorDataFutura()
     {
-        var contato = new Contato
-        {
-            Nome = "Cau� Holanda",
-            DataNascimento = DateTime.Now.AddDays(1) // Data futura
-        };
-
-        await Assert.ThrowsAsync<TratedExceptions>(() => _contatoService.AdicionarContato(contato));
+        var exception = await Assert.ThrowsAsync<TratedExceptions>(() => 
+            Task.FromResult(ContatoFactory.CriarNovoContato("Caua", "Holanda", DateTime.Now.AddDays(1), 'M'))
+        );
+        Assert.Equal("A data de nascimento não pode ser futura.", exception.Message);
     }
 
     [Fact(DisplayName = "Adicionar Contato - Falha por Menos de 1 Ano")]
     public async Task AdicionarContato_FalhaPorMenosDeUmAno()
     {
-        var contato = new Contato
-        {
-            Nome = "Cau� Holanda",
-            DataNascimento = DateTime.Now.AddMonths(-6) // Menos de 1 ano
-        };
-
-        await Assert.ThrowsAsync<TratedExceptions>(() => _contatoService.AdicionarContato(contato));
+        var exception = await Assert.ThrowsAsync<TratedExceptions>(() => 
+            Task.FromResult(ContatoFactory.CriarNovoContato("Caua", "Holanda", DateTime.Now.AddMonths(-6), 'M'))
+        );
+        Assert.Equal("O contato deve ter mais de 1 ano.", exception.Message);
     }
 
     [Fact(DisplayName = "Atualizar Contato - Sucesso")]
     public async Task AtualizarContato_Sucesso()
     {
-        var contato = new Contato
-        {
-            Id = Guid.NewGuid(),
-            Nome = "Cau� Holanda",
-            DataNascimento = DateTime.Now.AddYears(-20), // 20 anos
-            Ativo = true
-        };
+        var contatoId = Guid.NewGuid();
+        var contatoExistente = ContatoFactory.CriarNovoContato("Caua", "Holanda", DateTime.Now.AddYears(-20), 'M');
+        _contatoRepositoryMock.Setup(r => r.Read(contatoId)).ReturnsAsync(contatoExistente);
 
-        _contatoRepositoryMock.Setup(r => r.Update(contato)).Verifiable();
+        var contatoParaAtualizar = await _contatoService.ListarContatoId(contatoId);
+        contatoParaAtualizar.Atualizar("Novo", "Nome", DateTime.Now.AddYears(-25), 'F');
 
-        var resultado = await _contatoService.AtualizarContato(contato);
+        _contatoRepositoryMock.Setup(r => r.Update(contatoParaAtualizar)).Verifiable();
+
+        var resultado = await _contatoService.AtualizarContato(contatoParaAtualizar);
 
         Assert.NotNull(resultado);
-        _contatoRepositoryMock.Verify(r => r.Update(contato));
+        Assert.Equal("Novo", resultado.NomeCompleto.PrimeiroNome);
+        Assert.Equal("Nome", resultado.NomeCompleto.Sobrenome);
+        Assert.Equal(DateTime.Now.AddYears(-25).Date, resultado.DataNascimento.Date);
+        Assert.Equal('F', resultado.Sexo);
+        _contatoRepositoryMock.Verify(r => r.Update(contatoParaAtualizar));
         _unitOfWorkMock.Verify(u => u.CommitAsync());
     }
 
     [Fact(DisplayName = "Atualizar Contato Ativo - Sucesso")]
     public async Task AtualizarContatoAtivo_Sucesso()
     {
-        var contato = new Contato
-        {
-            Ativo = false
-        };
+        var contatoId = Guid.NewGuid();
+        var contatoExistente = ContatoFactory.CriarNovoContato("Caua", "Holanda", DateTime.Now.AddYears(-20), 'M');
+        contatoExistente.AlternarStatusAtivo();
 
-        _contatoRepositoryMock.Setup(r => r.Update(contato)).Verifiable();
+        _contatoRepositoryMock.Setup(r => r.Read(contatoId)).ReturnsAsync(contatoExistente);
 
-        var resultado = await _contatoService.AtualizarContatoAtivo(contato);
+        var contatoParaAtualizar = await _contatoService.ListarContatoId(contatoId);
+        
+
+        _contatoRepositoryMock.Setup(r => r.Update(contatoParaAtualizar)).Verifiable();
+
+        var resultado = await _contatoService.AtualizarContatoAtivo(contatoParaAtualizar);
 
         Assert.NotNull(resultado);
         Assert.True(resultado.Ativo);
-        _contatoRepositoryMock.Verify(r => r.Update(contato), Times.Once);
+        _contatoRepositoryMock.Verify(r => r.Update(contatoParaAtualizar), Times.Once);
         _unitOfWorkMock.Verify(u => u.CommitAsync(), Times.Once);
     }
 
     [Fact(DisplayName = "Atualizar Contato - Falha por Idade")]
     public async Task AtualizarContato_FalhaPorIdade()
     {
-        var contato = new Contato
-        {
-            Id = Guid.NewGuid(),
-            Nome = "Cau� Holanda",
-            DataNascimento = DateTime.Now.AddYears(-10), // 10 anos
-     
-        };
+        var contatoId = Guid.NewGuid();
+        var contatoExistente = ContatoFactory.CriarNovoContato("Caua", "Holanda", DateTime.Now.AddYears(-20), 'M');
+        _contatoRepositoryMock.Setup(r => r.Read(contatoId)).ReturnsAsync(contatoExistente);
 
-        await Assert.ThrowsAsync<TratedExceptions>(() => _contatoService.AtualizarContato(contato));
+        var contatoParaAtualizar = await _contatoService.ListarContatoId(contatoId);
+
+        var exception = await Assert.ThrowsAsync<TratedExceptions>(() => 
+            Task.Run(() => contatoParaAtualizar.Atualizar("Caua", "Holanda", DateTime.Now.AddYears(-10), 'M'))
+        );
+        Assert.Equal("O contato deve ter no mínimo 18 anos.", exception.Message);
     }
 
     [Fact(DisplayName = "Atualizar Contato - Falha por Inativo")]
     public async Task AtualizarContato_FalhaInatividade()
     {
-        var contato = new Contato
-        {
-            Id = Guid.NewGuid(),
-            Nome = "Cau� Holanda",
-            DataNascimento = DateTime.Now.AddYears(-20),
-            Ativo = false
-        };
+        var contatoId = Guid.NewGuid();
+        var contatoExistente = ContatoFactory.CriarNovoContato("Caua", "Holanda", DateTime.Now.AddYears(-20), 'M');
+        contatoExistente.AlternarStatusAtivo();
 
-        await Assert.ThrowsAsync<TratedExceptions>(() => _contatoService.AtualizarContato(contato));
+        _contatoRepositoryMock.Setup(r => r.Read(contatoId)).ReturnsAsync(contatoExistente);
+
+        var contatoParaAtualizar = await _contatoService.ListarContatoId(contatoId);
+
+        var exception = await Assert.ThrowsAsync<TratedExceptions>(() => 
+            Task.Run(() => contatoParaAtualizar.Atualizar("Caua", "Holanda", DateTime.Now.AddYears(-25), 'M'))
+        );
+        Assert.Equal("Não é possível atualizar um contato inativo.", exception.Message);
     }
 
     [Fact(DisplayName = "Listar Contato por ID - Sucesso")]
     public async Task ListarContatoPorId_Sucesso()
     {
         var contatoId = Guid.NewGuid();
-        var contato = new Contato { Id = contatoId, Nome = "Cau� Holanda", Ativo = true };
-
+        var contato = ContatoFactory.CriarNovoContato("Caua", "Holanda", DateTime.Now.AddYears(-20), 'M');
         _contatoRepositoryMock.Setup(r => r.Read(contatoId)).ReturnsAsync(contato);
 
         var resultado = await _contatoService.ListarContatoId(contatoId);
 
         Assert.NotNull(resultado);
         Assert.Equal(contatoId, resultado.Id);
+        Assert.Equal("Caua", resultado.NomeCompleto.PrimeiroNome);
+        Assert.Equal("Holanda", resultado.NomeCompleto.Sobrenome);
     }
 
     [Fact(DisplayName = "Deletar Contato - Sucesso")]

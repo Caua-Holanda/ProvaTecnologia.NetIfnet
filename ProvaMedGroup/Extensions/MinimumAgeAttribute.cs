@@ -1,4 +1,4 @@
-﻿using ProvaMedGroup.DomainService.Utils;
+﻿using ProvaMedGroup.DomainModel.Utils;
 using System;
 using System.ComponentModel.DataAnnotations;
 

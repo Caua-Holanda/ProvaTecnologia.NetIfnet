@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ProvaMedGroup.DomainModel.Entities;
 using ProvaMedGroup.DomainModel.Interfaces.Repositories;
-using ProvaMedGroup.Infra.Context;
 using System;
 using System.Collections.Generic;
 using System.Linq;

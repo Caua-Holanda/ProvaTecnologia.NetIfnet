@@ -4,7 +4,6 @@ using ProvaMed.Infra.UoW;
 using ProvaMedGroup.DomainModel.Interfaces.Repositories;
 using ProvaMedGroup.DomainModel.Interfaces.Services;
 using ProvaMedGroup.DomainService;
-using ProvaMedGroup.Infra.Context;
 using ProvaMedGroup.Infra.Repository;
 using Swashbuckle.AspNetCore.SwaggerGen;
 

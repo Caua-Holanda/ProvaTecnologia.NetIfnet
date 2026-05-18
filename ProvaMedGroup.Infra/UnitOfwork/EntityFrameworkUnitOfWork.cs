@@ -1,6 +1,4 @@
 ﻿using ProvaMed.DomainModel.Interfaces.UoW;
-using ProvaMedGroup.Infra.Context;
-
 namespace ProvaMed.Infra.UoW
 {
     public class EntityFrameworkUnitOfWork : IUnitOfWork

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Logging;
 using Newtonsoft.Json;
 using ProvaMed.Api.Configuration;
-using ProvaMedGroup.Infra.Context;
+using ProvaMedGroup.Middleware;
 
 namespace ProvaMedGroup
 {
@@ -64,6 +64,7 @@ namespace ProvaMedGroup
             }
             app.UseRouting();
             app.UseHttpsRedirection();
+            app.UseErrorHandling();
 
             app.UseSwaggerConfig(provider);
 

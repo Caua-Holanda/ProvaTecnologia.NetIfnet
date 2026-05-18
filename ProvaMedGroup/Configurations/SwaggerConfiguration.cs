@@ -15,7 +15,6 @@ namespace ProvaMed.Api.Configuration
             {
                 c.OperationFilter<SwaggerDefaultValues>();
 
-                // Configurações de versão
                 c.DocInclusionPredicate((docName, apiDesc) =>
                     apiDesc.GroupName == docName);
             });

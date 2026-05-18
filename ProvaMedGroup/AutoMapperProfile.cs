@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using ProvaMedGroup.DomainModel.Entities;
-using ProvaMedGroup.ViewModel;
+using ProvaMedGroup.DomainModel.ValueObjects;
 using ProvaMedGroup.ViewModels;
 
 namespace ProvaMedGroup
@@ -9,16 +9,15 @@ namespace ProvaMedGroup
     {
         public AutoMapperProfile()
         {
-            MapDomainToViewModel();
+            CreateMap<Contato, ContatoViewModel>()
+                .ForMember(dest => dest.PrimeiroNome, opt => opt.MapFrom(src => src.NomeCompleto.PrimeiroNome))
+                .ForMember(dest => dest.Sobrenome, opt => opt.MapFrom(src => src.NomeCompleto.Sobrenome));
 
+            CreateMap<ContatoViewModel, Contato>()
+                .ConstructUsing((src, context) =>
+                {
+                    return Contato.Criar(src.PrimeiroNome, src.Sobrenome, src.DataNascimento, src.Sexo);
+                });
         }
-
-        public void MapDomainToViewModel()
-        {
-            CreateMap<Contato, ContatoIdViewmodel>().ReverseMap();
-            CreateMap<Contato, ContatoViewModel>().ReverseMap();
-        }
-
-
     }
 }

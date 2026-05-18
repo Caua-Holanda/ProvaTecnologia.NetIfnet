@@ -12,18 +12,19 @@ namespace ProvaMedGroup.Infra.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Contatos",
+                name: "Contato",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Nome = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DataNascimento = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PrimeiroNome = table.Column<string>(type: "varchar(100)", nullable: false),
+                    Sobrenome = table.Column<string>(type: "varchar(50)", nullable: false),
+                    DataNascimento = table.Column<DateTime>(type: "Datetime", nullable: false),
                     Ativo = table.Column<bool>(type: "bit", nullable: false),
-                    Sexo = table.Column<string>(type: "nvarchar(1)", nullable: false)
+                    Sexo = table.Column<string>(type: "char(1)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Contatos", x => x.Id);
+                    table.PrimaryKey("PK_Contato", x => x.Id);
                 });
         }
 
@@ -31,7 +32,7 @@ namespace ProvaMedGroup.Infra.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Contatos");
+                name: "Contato");
         }
     }
 }

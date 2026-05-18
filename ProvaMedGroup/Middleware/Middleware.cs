@@ -1,75 +1,89 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
-using System.Net;
 using System;
+using System.Net;
 using System.Threading.Tasks;
 using ProvaMedGroup.DomainModel.Exceptions;
 
 namespace ProvaMedGroup.Middleware
 {
-    // You may need to install the Microsoft.AspNetCore.Http.Abstractions package into your project
-    public class Middleware
+    public class ErrorHandlingMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly IWebHostEnvironment _env;
 
-        public Middleware(RequestDelegate next)
+        public ErrorHandlingMiddleware(RequestDelegate next, IWebHostEnvironment env)
         {
             _next = next;
+            _env = env;
         }
 
-        public Task Invoke(HttpContext httpContext)
+        public async Task InvokeAsync(HttpContext context)
         {
-
             try
             {
-                return _next(httpContext);
+                await _next(context);
             }
             catch (Exception ex)
             {
-                string result;
-                int code;
+                await HandleExceptionAsync(context, ex);
+            }
+        }
 
-                if (ex is TratedExceptions tratedExceptions)
+        private Task HandleExceptionAsync(HttpContext context, Exception exception)
+        {
+            var code = HttpStatusCode.InternalServerError;
+            object response;
+
+            if (exception is TratedExceptions treatedException)
+            {
+                code = HttpStatusCode.BadRequest;
+                response = new
                 {
-                    code = (int)HttpStatusCode.BadRequest;
-                    result = JsonConvert.SerializeObject(new
+                    success = false,
+                    statusCode = (int)code,
+                    title = "Requisição inválida",
+                    message = treatedException.Message
+                };
+            }
+            else
+            {
+                if (_env.IsDevelopment())
+                {
+                    response = new
                     {
-                        code,
-                        message = ex.Message
-
-                    });
+                        success = false,
+                        statusCode = (int)code,
+                        title = "Erro interno no servidor (DEV)",
+                        message = exception.Message,
+                        stackTrace = exception.StackTrace,
+                        innerException = exception.InnerException?.Message
+                    };
                 }
                 else
                 {
-                    code = (int)HttpStatusCode.InternalServerError;
-                    result = JsonConvert.SerializeObject(new
+                    response = new
                     {
-                        code,
-                        title = "Oops!",
-                        message = "Encontramos uma falha ao tentar realizar esta operação no momento.",
-                        trace = ex
-                    });
-
-
+                        success = false,
+                        statusCode = (int)code,
+                        title = "Erro interno no servidor",
+                        message = "Ocorreu um erro inesperado. Tente novamente mais tarde."
+                    };
                 }
-
-                httpContext.Response.ContentType = "application/json";
-                httpContext.Response.StatusCode = code;
-
-                return httpContext.Response.WriteAsync(result);
             }
 
-
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = (int)code;
+            return context.Response.WriteAsync(JsonConvert.SerializeObject(response));
         }
     }
 
-    // Extension method used to add the middleware to the HTTP request pipeline.
-    public static class MiddlewareExtensions
+    public static class ErrorHandlingMiddlewareExtensions
     {
-        public static IApplicationBuilder UseMiddleware(this IApplicationBuilder builder)
+        public static IApplicationBuilder UseErrorHandling(this IApplicationBuilder builder)
         {
-            return builder.UseMiddleware<Middleware>();
+            return builder.UseMiddleware<ErrorHandlingMiddleware>();
         }
     }
 }

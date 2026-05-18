@@ -5,14 +5,13 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using ProvaMedGroup.Infra.Context;
 
 #nullable disable
 
 namespace ProvaMedGroup.Infra.Migrations
 {
     [DbContext(typeof(ProvaMedGroupDbContext))]
-    [Migration("20241024174856_Initial")]
+    [Migration("20260518000759_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -35,19 +34,44 @@ namespace ProvaMedGroup.Infra.Migrations
                         .HasColumnType("bit");
 
                     b.Property<DateTime>("DataNascimento")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("Datetime");
 
                     b.Property<string>("Sexo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(1)");
+                        .HasColumnType("char(1)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Contatos");
+                    b.ToTable("Contato", (string)null);
+                });
+
+            modelBuilder.Entity("ProvaMedGroup.DomainModel.Entities.Contato", b =>
+                {
+                    b.OwnsOne("ProvaMedGroup.DomainModel.ValueObjects.NomeCompleto", "NomeCompleto", b1 =>
+                        {
+                            b1.Property<Guid>("ContatoId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("PrimeiroNome")
+                                .IsRequired()
+                                .HasColumnType("varchar(100)")
+                                .HasColumnName("PrimeiroNome");
+
+                            b1.Property<string>("Sobrenome")
+                                .IsRequired()
+                                .HasColumnType("varchar(50)")
+                                .HasColumnName("Sobrenome");
+
+                            b1.HasKey("ContatoId");
+
+                            b1.ToTable("Contato");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ContatoId");
+                        });
+
+                    b.Navigation("NomeCompleto")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
